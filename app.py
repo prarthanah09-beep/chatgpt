@@ -18,13 +18,46 @@ st.markdown("""
 <style>
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:25px}
-div[data-testid="stFileUploader"] section{background:#000 !important;border:1px solid #555 !important;border-radius:12px !important;height:52px !important;padding:0 !important}
-div[data-testid="stFileUploader"] section>div:first-child, div[data-testid="stFileUploader"] small, div[data-testid="stFileUploader"] svg, div[data-testid="stFileUploader"] section span{display:none !important}
-div[data-testid="stFileUploader"] section button{background:#000 !important;width:100% !important;height:52px !important;border:none !important}
-div[data-testid="stFileUploader"] section button div p{font-size:0 !important}
-div[data-testid="stFileUploader"] section button div p::after{content:"+";font-size:32px !important;color:white !important;display:block !important}
-div[data-testid="stTextInput"]>div>div>input{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important;height:52px !important}
-div[data-testid="stTextInput"] input::placeholder{color:white !important}
+
+/* + BUTTON - ONLY + - FIXED - SHOWS NOW */
+div[data-testid="stFileUploader"] section{
+    background:#000 !important;
+    border:1px solid #555 !important;
+    border-radius:12px !important;
+    height:52px !important;
+    padding:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+}
+div[data-testid="stFileUploader"] section>div:first-child{display:none !important}
+div[data-testid="stFileUploader"] section small{display:none !important}
+div[data-testid="stFileUploader"] section svg{display:none !important}
+div[data-testid="stFileUploader"] section button{
+    background:transparent !important;
+    border:none !important;
+    height:52px !important;
+    width:100% !important;
+}
+div[data-testid="stFileUploader"] section button div p{
+    font-size:0 !important;
+    display:block !important;
+}
+div[data-testid="stFileUploader"] section button div p::after{
+    content:"+";
+    font-size:32px !important;
+    color:white !important;
+    display:block !important;
+}
+
+/* ASK CHATGPT - FORCE BLACK */
+div[data-testid="stTextInput"]>div>div>input{
+    background:#000 !important;
+    color:white !important;
+    border:1px solid #555 !important;
+    border-radius:12px !important;
+    height:52px !important;
+}
 div[data-testid="stFormSubmitButton"] button{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important;height:45px !important}
 div[data-testid="stFormSubmitButton"] button *{color:white !important}
 div[data-testid="stDownloadButton"] button{background:#000 !important;color:white !important;border:1px solid #555 !important}
