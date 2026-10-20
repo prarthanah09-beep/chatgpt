@@ -3,7 +3,7 @@ import os, uuid, base64
 from pathlib import Path
 from huggingface_hub import InferenceClient
 
-# NO ICON
+# No page icon
 st.set_page_config(page_title="Indian AI Generator", layout="wide")
 
 # Background from static/india.jpg
@@ -43,15 +43,22 @@ div.stButton > button {{
     width: 100%;
     padding: 15px !important;
 }}
+.image-card {{
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid rgba(255,255,255,0.2);
+}}
 </style>
 """, unsafe_allow_html=True)
 
-# FREE HF TOKEN
-HF_KEY = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
+HF_KEY = st.secrets.get("HF_TOKEN") if hasattr(st, 'secrets') else None
+if not HF_KEY:
+    HF_KEY = os.getenv("HF_TOKEN")
 
 if not HF_KEY:
     st.error("Add HF_TOKEN in Secrets")
-    st.info("1. Go to huggingface.co/settings/tokens\n2. Create new token (Read)\n3. Copy hf_... \n4. In Streamlit: Settings -> Secrets -> HF_TOKEN = 'hf_...'")
     st.stop()
 
 client = InferenceClient(api_key=HF_KEY)
@@ -59,10 +66,12 @@ client = InferenceClient(api_key=HF_KEY)
 col1, col2 = st.columns([1.2, 1])
 
 with col1:
-    st.markdown("# 🇮🇳 Indian AI Generator")
+    st.markdown("# Indian AI Generator")
     st.markdown("FLUX Model - FREE - No $15 needed")
+    st.markdown('<div class="image-card">', unsafe_allow_html=True)
     prompt = st.text_area("Enter prompt", "Chota Bheem as real 8 year old Indian boy, school uniform, smiling, photorealistic, ultra realistic, natural skin texture, real life", height=140)
-    generate = st.button("✨ Generate REAL Image")
+    generate = st.button("Generate REAL Image")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
     if generate and prompt:
@@ -75,18 +84,21 @@ with col2:
                 save_path = f"generated/{uuid.uuid4().hex}.jpg"
                 image.save(save_path)
                 
+                st.markdown('<div class="image-card">', unsafe_allow_html=True)
                 st.image(save_path, caption="Generated - FREE FLUX", use_container_width=True)
-                st.download_button("📥 Download HD", open(save_path,"rb"), file_name="indian_real.jpg", mime="image/jpeg")
-                st.success("Done! FREE - No payment needed")
-                
-                if bg_data:
-                    st.caption("✅ Using static/india.jpg background")
-                else:
-                    st.warning("⚠️ Add your image as static/india.jpg in GitHub repo")
+                st.download_button("Download HD", open(save_path,"rb"), file_name="indian_real.jpg", mime="image/jpeg")
+                st.success("Done! FREE")
+                st.markdown('</div>', unsafe_allow_html=True)
                     
             except Exception as e:
                 st.error(f"Error: {e}")
                 if "429" in str(e):
-                    st.info("Free server busy - wait 30 sec, try again. It's free so many people use it.")
+                    st.info("Free server busy - wait 30 sec, try again.")
     else:
-        st.info("👈 Your image will appear here")
+        st.markdown('<div class="image-card">', unsafe_allow_html=True)
+        st.info("Your image will appear here")
+        if bg_data:
+            st.success("Using static/india.jpg background")
+        else:
+            st.warning("Add your image as static/india.jpg in GitHub repo")
+        st.markdown('</div>', unsafe_allow_html=True)
