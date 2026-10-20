@@ -10,6 +10,7 @@ STATIC_DIR = BASE_DIR / "static"
 GENERATED_DIR = STATIC_DIR / "generated"
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
+# API KEY from Secrets
 API_KEY = os.getenv("POLLINATIONS_API_KEY","").strip()
 if not API_KEY:
     try: API_KEY = st.secrets.get("POLLINATIONS_API_KEY","").strip()
@@ -23,26 +24,18 @@ def copy_button(text,key):
     components.html(f"""<button id="c_{safe}" style="background:#000;color:#fff;border:1px solid #666;border-radius:8px;padding:8px 16px">Copy</button>
     <script>const b=document.getElementById("c_{safe}");b.onclick=async()=>{{let t=atob("{enc}");try{{await navigator.clipboard.writeText(new TextDecoder().decode(Uint8Array.from(t,c=>c.charCodeAt(0))));b.innerText="Copied!"}}catch{{b.innerText="Failed"}}}};</script>""",height=45)
 
-# BACKGROUND IMAGE - ALWAYS SHOW
+# BACKGROUND IMAGE
 bp = STATIC_DIR / "india.jpg"
 if bp.exists():
     b64 = base64.b64encode(bp.read_bytes()).decode()
-    bg_css = f'''
-    background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url("data:image/jpeg;base64,{b64}");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    '''
+    bg_css = f'background-image: linear-gradient(rgba(0,0,0,0.70), rgba(0,0,0,0.80)), url("data:image/jpeg;base64,{b64}"); background-size: cover; background-position: center; background-attachment: fixed;'
 else:
     bg_css = "background:#000!important;"
 
 st.markdown(f"""
 <style>
 .stApp{{{bg_css}}}
-.stApp::before{{content:"";position:fixed;inset:0;background:rgba(0,0,0,0.2);z-index:-1;}}
-h1{{color:#fff!important;text-align:center}}
-p,span,div,li,label{{color:#fff!important}}
+h1{{color:#fff!important;text-align:center}} p,span,div,li,label{{color:#fff!important}}
 div[data-testid="stTextInput"] input{{background:#000!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #666!important;border-radius:12px!important}}
 div[data-testid="stVerticalBlockBorderWrapper"],div[data-testid="stContainer"],div[data-testid="stForm"],div[data-testid="stPopoverBody"],div[data-testid="stChatMessage"],div[data-testid="stFileUploader"]{{background:#000!important;border:1px solid #444!important;border-radius:12px!important}}
 div[data-baseweb="select"],div[data-baseweb="select"]>div,div[role="listbox"]{{background:#000!important;color:#fff!important}}
@@ -58,29 +51,36 @@ if "preset_prompt" not in st.session_state: st.session_state.preset_prompt=""
 def generate_text(p):
     r=requests.get(f"https://text.pollinations.ai/{quote(p)}",timeout=90)
     if r.status_code==200 and r.text.strip(): return r.text.strip()
-    raise RuntimeError("Failed")
+    raise RuntimeError("Text failed")
 
 def generate_image(p):
+    # SAFETY: force modest clothing for kids
+    lower = p.lower()
+    if any(x in lower for x in ["bheem","chutki","boy","girl","child","shin","nobita"]):
+        p = p + ", fully clothed, modest traditional Indian attire, appropriate clothing for children, wearing kurta and dhoti properly, safe"
+    
     hdr={"Authorization":f"Bearer {API_KEY}"} if API_KEY else {}
-    for url in [f"https://image.pollinations.ai/prompt/{quote(p)}?width=1024&height=1024&model=flux&nologo=true", f"https://gen.pollinations.ai/image/{quote(p)}"]:
-        try:
-            r=requests.get(url,params={"width":1024,"height":1024,"model":"flux"},headers=hdr,timeout=120)
-            if r.status_code==200 and len(r.content)>4000:
-                path=GENERATED_DIR/f"image_{uuid.uuid4().hex}.jpg"
-                path.write_bytes(r.content)
-                return str(path)
-        except: continue
-    raise RuntimeError("Image failed")
+    # nologo=true removes watermark ONLY if API KEY is valid
+    url = f"https://image.pollinations.ai/prompt/{quote(p)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&safe=true"
+    try:
+        r=requests.get(url, headers=hdr, timeout=120)
+        if r.status_code==200 and len(r.content)>5000:
+            path=GENERATED_DIR/f"image_{uuid.uuid4().hex}.jpg"
+            path.write_bytes(r.content)
+            return str(path)
+    except Exception as e:
+        st.error(f"Image error: {e}")
+    raise RuntimeError("Image failed - Check POLLINATIONS_API_KEY in Streamlit Secrets")
 
 PRESETS = {
+"Chota Bheem Real": "Chota Bheem as real Indian boy 9 years old, wearing orange traditional dhoti with golden border and white kurta, fully clothed modest, strong boy holding laddoo, Dholakpur village background, photorealistic, 8k",
+"Chutki Real": "Chutki from Chota Bheem as real Indian girl, wearing pink traditional salwar with dupatta, fully clothed modest, cute ponytails, photorealistic, 8k",
+"Motu Patlu Real": "Motu Patlu as real Indian men in Furfuri Nagar, Motu fat with moustache wearing blue kurta pyjama, Patlu thin wearing yellow kurta, both fully clothed modest, photorealistic, 8k",
+"Oggy Real Cat": "Oggy from Oggy and the Cockroaches as photorealistic real blue-grey fluffy cat standing like human, wearing clothes, ultra detailed fur, 8k, black background",
+"Tom & Jerry Real": "Tom and Jerry in real life, photorealistic grey cat and brown mouse fighting in kitchen, ultra detailed fur, National Geographic style, 8k",
 "Spirited Away Buns": "Spirited Away steamed pork buns, photorealistic real food, fluffy baozi, steam rising, 8k food photography, black background",
-"Howl's Breakfast": "Howl's Moving Castle breakfast, real fried eggs and bacon sizzling in cast iron pan, photorealistic, 8k",
-"Ponyo Ramen": "Ponyo ramen, real ham ramen with boiled egg, steaming hot, photorealistic",
-"Oggy Real Cat": "Oggy from Oggy and the Cockroaches, photorealistic real blue-grey fluffy cat standing like human, ultra detailed fur, 8k, black background",
-"Tom & Jerry Real": "Tom and Jerry in real life, photorealistic grey cat and brown mouse fighting in kitchen, ultra detailed fur, 8k",
-"Chota Bheem Real": "Chota Bheem in real life, photorealistic 9 year old Indian boy with dhoti, laddoo in hand, Dholakpur, 8k",
-"Motu Patlu Real": "Motu Patlu in real life, photorealistic two Indian men, one fat bald with moustache eating samosa, 8k",
-"Shin Chan Real": "Shin Chan in real life, photorealistic 5 year old boy, funny face, 8k"
+"Ponyo Ramen": "Ponyo ramen, real ham ramen with boiled egg and green onions, steaming hot, photorealistic food, 8k",
+"Motu Samosa": "Real samosa with chutney, photorealistic Indian street food, ultra detailed, 8k food photography"
 }
 
 st.title("Indian AI")
@@ -94,7 +94,8 @@ with st.popover("☰"):
     if up:
         p = GENERATED_DIR / f"up_{uuid.uuid4().hex}_{up.name}"
         p.write_bytes(up.getvalue())
-        st.image(str(p), width=150) if up.type.startswith("image") else st.success(up.name)
+        if up.type.startswith("image"): st.image(str(p), width=150)
+        else: st.success(up.name)
 
 for i,m in enumerate(st.session_state.messages):
     with st.container(border=True):
