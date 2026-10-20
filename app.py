@@ -1,7 +1,7 @@
 import streamlit as st, urllib.parse, random, base64, time, requests
 from pathlib import Path
 
-st.set_page_config(page_title="ChatGPT", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ChatGPT", layout="wide")
 
 API_BASE = st.secrets.get("POLLINATION_API", "https://image.pollinations.ai/prompt")
 MODEL = st.secrets.get("MODEL", "flux")
@@ -18,39 +18,77 @@ if bg:
 st.markdown("""
 <style>
 header,footer{visibility:hidden}
-.center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:25px;font-weight:600}
+.center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:25px}
 
-/* ONLY ONE + BOX */
-.plus-box{
+/* REAL FILE UPLOADER = BLACK BOX WITH ONLY + */
+div[data-testid="stFileUploader"] section{
     background:#000 !important;
     border:1px solid #555 !important;
     border-radius:12px !important;
     height:52px !important;
-    width:100% !important;
-    color:white !important;
-    font-size:32px !important;
     display:flex !important;
     align-items:center !important;
     justify-content:center !important;
 }
+/* Hide drag text and limit text */
+div[data-testid="stFileUploader"] section>div:first-child, 
+div[data-testid="stFileUploader"] small{display:none !important}
 
-/* INVISIBLE FILE INPUT ON TOP OF + - SO MOBILE TAP OPENS GALLERY */
-div[data-testid="stFileUploader"]{
-    opacity:0 !important;
-    position:absolute !important;
-    top:0 !important;
-    left:0 !important;
+/* Hide the small upload arrow icon */
+div[data-testid="stFileUploader"] svg, 
+div[data-testid="stFileUploader"] section span{display:none !important}
+
+/* The button itself - make it full black */
+div[data-testid="stFileUploader"] section button{
+    background:#000 !important;
+    border:none !important;
     width:100% !important;
     height:52px !important;
-    z-index:10 !important;
 }
-div[data-testid="stFileUploader"] *{opacity:0 !important}
+/* Force + text - ONLY + */
+div[data-testid="stFileUploader"] section button div p{
+    font-size:0 !important;
+}
+div[data-testid="stFileUploader"] section button div p::after{
+    content:"+";
+    font-size:32px !important;
+    color:white !important;
+}
 
-/* BLACK BOXES WHITE TEXT */
-div[data-testid="stTextInput"] input{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important;height:52px !important}
-div[data-testid="stFormSubmitButton"] button, div[data-testid="stDownloadButton"] button{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important}
+/* ASK CHATGPT BLACK */
+div[data-testid="stTextInput"] input{
+    background:#000 !important;
+    color:white !important;
+    border:1px solid #555 !important;
+    border-radius:12px !important;
+    height:52px !important;
+}
+
+/* GENERATE BLACK */
+div[data-testid="stFormSubmitButton"] button, div[data-testid="stDownloadButton"] button{
+    background:#000 !important;
+    color:white !important;
+    border:1px solid #555 !important;
+    border-radius:12px !important;
+}
 div[data-testid="stFormSubmitButton"] button *, div[data-testid="stDownloadButton"] button *{color:white !important}
 </style>
+
+<script>
+// FORCE ONLY + ON MOBILE - JS FIX
+setTimeout(function(){
+    const check = setInterval(function(){
+        const btn = document.querySelector('[data-testid="stFileUploader"] button div p');
+        if(btn){
+            btn.innerHTML = '+';
+            btn.style.fontSize = '32px';
+            btn.style.color = 'white';
+        }
+        const svgs = document.querySelectorAll('[data-testid="stFileUploader"] svg');
+        svgs.forEach(s=>s.style.display='none');
+    }, 500);
+}, 1000);
+</script>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="center">What can I help with?</div>', unsafe_allow_html=True)
@@ -63,10 +101,7 @@ with mid:
     with st.form("chat_form"):
         c1,c2=st.columns([1,4])
         with c1:
-            # ONLY ONE + - SINGLE ELEMENT
-            st.markdown('<div style="position:relative"><div class="plus-box">+</div>', unsafe_allow_html=True)
-            st.file_uploader("file", type=["jpg","png","webp","jpeg"], label_visibility="collapsed")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.file_uploader(" ", type=["jpg","png","webp","jpeg"], label_visibility="collapsed")
         with c2:
             prompt=st.text_input("prompt", placeholder="Ask ChatGPT", label_visibility="collapsed")
         gen=st.form_submit_button("Generate")
@@ -82,7 +117,7 @@ with mid:
             try:
                 st.session_state.gen_data=requests.get(url, timeout=30).content
             except:
-                st.session_state.gen_data=None
+                pass
             st.rerun()
 
     if st.session_state.gen_url:
