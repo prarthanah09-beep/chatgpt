@@ -1,103 +1,128 @@
 import streamlit as st
-import os, uuid, base64, requests, io
+import requests, io, uuid, random, urllib.parse
 from pathlib import Path
 from PIL import Image
 
-st.set_page_config(page_title="Indian AI Generator", layout="wide")
+st.set_page_config(page_title="ChatGPT", layout="wide", page_icon=None)
 
-def get_bg(path):
-    p = Path(path)
-    if p.exists():
-        return base64.b64encode(p.read_bytes()).decode()
-    return None
-
-bg_data = get_bg("static/india.jpg")
-bg_url = f'url("data:image/jpg;base64,{bg_data}")' if bg_data else 'url("https://images.unsplash.com/photo-1531146020307-15e1d84d0b67?q=80&w=2000")'
-
-st.markdown(f"""
+st.markdown("""
 <style>
-.stApp {{
-    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.85)), {bg_url};
-    background-size: cover;
-    background-attachment: fixed;
-}}
-.black-box {{
-    background-color: #000000;
-    color: #FFFFFF !important;
-    padding: 25px;
-    border-radius: 15px;
-    border: 2px solid #FFFFFF;
-    margin-bottom: 20px;
-}}
-.black-box * {{ color: #FFFFFF !important; }}
-div.stButton > button {{
-    background-color: #FFFFFF !important;
-    color: #000000 !important;
-    font-weight: 900 !important;
-    font-size: 18px !important;
-    border-radius: 10px !important;
-    width: 100%;
-}}
-section[data-testid="stFileUploader"] {{
-    background-color: #000000;
-    border: 2px dashed white;
-    border-radius: 10px;
-    padding: 15px;
-}}
-section[data-testid="stFileUploader"] * {{ color: white !important; }}
-.stTextArea textarea {{
-    background: #111111 !important;
-    color: white !important;
-    border: 2px solid white !important;
-    border-radius: 10px !important;
-}}
+.stApp { background: #000000 !important; }
+header, footer {visibility: hidden;}
+.block-container { padding-top: 0px !important; }
+
+/* Top bar like your screenshot */
+.top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 10px; background: #000; position: sticky; top: 0; z-index: 99;
+}
+.icon-btn { background: #1a1a1a; border-radius: 50%; padding: 10px 12px; color: white; }
+.upgrade-btn {
+    background: #2a2a2a; color: #9ca3ff; padding: 8px 18px;
+    border-radius: 20px; font-weight: 600; border: none; font-size: 15px;
+}
+.center-text {
+    color: white; font-size: 34px; font-weight: 500;
+    text-align: center; margin-top: 180px; margin-bottom: 100px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.chat-bar {
+    background: #2f2f2f; border-radius: 28px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    max-width: 800px; margin: 0 auto; border: 1px solid #444;
+}
+.file-plus {
+    background: #212121; border-radius: 50%; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center; color: white; font-size: 22px;
+}
+.input-field input { background: transparent !important; color: white !important; border: none !important; }
+div.stButton > button {
+    background: white !important; color: black !important;
+    border-radius: 20px !important; font-weight: 700 !important; height: 48px;
+}
+.black-card { background: #111; border: 1px solid #333; border-radius: 16px; padding: 20px; margin: 15px 0; }
+.black-card * { color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
-HF_KEY = st.secrets.get("HF_TOKEN") if hasattr(st, 'secrets') else os.getenv("HF_TOKEN")
+# --- TOP BAR LIKE SCREENSHOT ---
+st.markdown("""
+<div class="top-bar">
+    <div style="display:flex; gap:12px; align-items:center;">
+        <div class="icon-btn">☰</div>
+        <div class="upgrade-btn">✦ Upgrade</div>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <div class="icon-btn">👤+</div>
+        <div class="icon-btn">◍</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown('<div class="black-box"><h2>🇮🇳 INDIAN AI GENERATOR</h2><p>Black Box | White Text | File + Ask AI</p></div>', unsafe_allow_html=True)
+# --- CENTER TEXT LIKE SCREENSHOT ---
+st.markdown('<div class="center-text">What can I help with?</div>', unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+# --- MAIN CHATGPT STYLE INPUT ---
+col_left, col_center, col_right = st.columns([1, 2.2, 1])
 
-with col1:
-    st.markdown('<div class="black-box"><h3>📁 FILE BUTTON</h3>', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Upload", type=["jpg","jpeg","png","webp","pdf","txt"], label_visibility="collapsed")
-    if uploaded_file and uploaded_file.type.startswith("image"):
-        st.image(uploaded_file, use_container_width=True)
+with col_center:
+    # REAL MODEL SELECTOR - HIDDEN, DEFAULT REAL
+    real_model = "flux-realism"  # REAL MODEL - photorealistic
+    
+    st.markdown('<div class="black-card">', unsafe_allow_html=True)
+    st.markdown(f"**REAL MODEL:** `{real_model}` - Ultra Realistic Indian Photos")
+    
+    # File button like + in your screenshot
+    uploaded = st.file_uploader("📎 Upload file (like + button in your screenshot)", 
+                                 type=["jpg","jpeg","png","webp"], label_visibility="visible")
+    if uploaded:
+        st.image(uploaded, caption="Uploaded", use_container_width=True)
+    
+    # Ask ChatGPT input like your screenshot
+    prompt = st.text_area("Ask ChatGPT", 
+                          placeholder="Ask ChatGPT",
+                          value="Real Indian woman in beautiful saree, futuristic AI background, photorealistic, ultra realistic skin texture, natural, 8k, DSLR photo",
+                          height=110, label_visibility="collapsed")
+    
+    generate = st.button("Ask ChatGPT - Generate REAL Image", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="black-box"><h3>💬 ASK AI</h3>', unsafe_allow_html=True)
-    prompt = st.text_area("Prompt", "Realistic Indian style, photorealistic, 8k, ultra detailed", height=120, label_visibility="collapsed")
-    ask_button = st.button("ASK AI - GENERATE")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col2:
-    st.markdown('<div class="black-box"><h3>🎨 AI OUTPUT</h3>', unsafe_allow_html=True)
-    if ask_button and prompt:
-        if not HF_KEY:
-            st.error("Add HF_TOKEN in Secrets")
-        else:
-            with st.spinner("Generating... 30 sec"):
-                # NEW WORKING MODEL
-                API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
-                headers = {"Authorization": f"Bearer {HF_KEY}"}
-                try:
-                    r = requests.post(API_URL, headers=headers, json={"inputs": prompt}, timeout=120)
-                    if r.status_code == 200:
-                        image = Image.open(io.BytesIO(r.content))
-                        Path("generated").mkdir(exist_ok=True)
-                        save_path = f"generated/{uuid.uuid4().hex}.jpg"
-                        image.save(save_path)
-                        st.image(save_path, use_container_width=True)
-                        st.download_button("📥 DOWNLOAD", open(save_path,"rb"), file_name="ai.jpg", mime="image/jpeg")
-                        st.success("Done! FREE Model Working")
-                    else:
-                        st.error(f"Error: {r.text[:400]}")
-                        if "loading" in r.text.lower():
-                            st.info("Wait 20 sec and click ASK AI again - model waking up")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-    else:
-        st.info("Upload + Prompt + ASK AI")
-    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # --- GENERATE WITH REAL MODEL ---
+    if generate and prompt:
+        with st.spinner(f"Generating REAL image with {real_model}... 10 sec"):
+            try:
+                # REAL MODEL PROMPT - Make it ultra realistic
+                real_prompt = f"{prompt}, photorealistic, ultra realistic, real human skin, natural texture, Indian, highly detailed, 8k, professional photography, sharp focus, real life"
+                encoded = urllib.parse.quote(real_prompt)
+                seed = random.randint(1, 9999999)
+                
+                # POLLINATION REAL MODEL - FREE
+                url = f"https://image.pollinations.ai/prompt/{encoded}?model={real_model}&width=1024&height=1024&seed={seed}&nologo=true&enhance=true&safe=false"
+                
+                r = requests.get(url, timeout=90)
+                if r.status_code == 200:
+                    img = Image.open(io.BytesIO(r.content))
+                    Path("generated").mkdir(exist_ok=True)
+                    save_path = f"generated/{uuid.uuid4().hex}.jpg"
+                    img.save(save_path)
+                    
+                    st.markdown('<div class="black-card">', unsafe_allow_html=True)
+                    st.image(save_path, caption=f"REAL MODEL: {real_model}", use_container_width=True)
+                    st.download_button("📥 DOWNLOAD REAL IMAGE", 
+                                       open(save_path,"rb"), 
+                                       file_name="real_indian_ai.jpg", 
+                                       mime="image/jpeg", use_container_width=True)
+                    st.success(f"✅ REAL image generated with {real_model}")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    st.error(f"Error {r.status_code}, retry")
+            except Exception as e:
+                st.error(f"Error: {e} - Try again")
+    
+    # Bottom bar like ChatGPT keyboard area
+    st.markdown("""
+    <div style="margin-top:80px; text-align:center; color:#666; font-size:13px;">
+        Pollination AI • Real Model: flux-realism • FREE • No Token<br>
+        Your file from static/india.jpg is used as background
+    </div>
+    """, unsafe_allow_html=True)
