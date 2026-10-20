@@ -4,14 +4,16 @@ from urllib.parse import quote
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
-from dotenv import load_dotenv
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 GENERATED_DIR = STATIC_DIR / "generated"
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+
 API_KEY = os.getenv("POLLINATIONS_API_KEY","").strip()
+if not API_KEY:
+    try: API_KEY = st.secrets.get("POLLINATIONS_API_KEY","").strip()
+    except: pass
 
 st.set_page_config(page_title="Indian AI", layout="centered")
 
@@ -29,21 +31,22 @@ st.markdown(f"""
 .stApp{{{bg_css}background:#000!important}}
 h1,p,label,span,div,li{{color:#fff!important}} h1{{text-align:center}}
 div[data-testid="stTextInput"] input{{background:#000!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #666!important;border-radius:10px!important}}
-div[data-testid="stVerticalBlockBorderWrapper"],div[data-testid="stContainer"],div[data-testid="stForm"],div[data-testid="stPopoverBody"],div[data-testid="stChatMessage"]{{background:#000!important;border:1px solid #444!important;border-radius:12px!important}}
+div[data-testid="stVerticalBlockBorderWrapper"],div[data-testid="stContainer"],div[data-testid="stForm"],div[data-testid="stPopoverBody"],div[data-testid="stChatMessage"],div[data-testid="stFileUploader"]{{background:#000!important;border:1px solid #444!important;border-radius:12px!important}}
 div[data-baseweb="select"],div[data-baseweb="select"]>div,div[role="listbox"],ul[role="listbox"]{{background:#000!important;color:#fff!important}}
 li[role="option"]{{background:#000!important;color:#fff!important}}
 div[data-testid="stCode"],div[data-testid="stCode"] pre{{background:#000!important;color:#fff!important;border:1px solid #444!important}}
 .stButton button,.stDownloadButton button,div[data-testid="stFormSubmitButton"] button,[data-testid="stPopover"] button{{background:#000!important;color:#fff!important;border:1px solid #666!important}}
+section[data-testid="stFileUploaderDropzone"]{{background:#000!important;border:1px dashed #666!important;color:#fff!important}}
 </style>""",unsafe_allow_html=True)
 
 if "messages" not in st.session_state: st.session_state.messages=[]
 if "mode" not in st.session_state: st.session_state.mode="Both"
-if "ghibli_prompt" not in st.session_state: st.session_state.ghibli_prompt=""
+if "preset_prompt" not in st.session_state: st.session_state.preset_prompt=""
 
 def generate_text(p):
     r=requests.get(f"https://text.pollinations.ai/{quote(p)}",timeout=90)
     if r.status_code==200 and r.text.strip(): return r.text.strip()
-    raise RuntimeError("Failed")
+    raise RuntimeError("Text failed")
 
 def generate_image(p):
     hdr={"Authorization":f"Bearer {API_KEY}"} if API_KEY else {}
@@ -57,28 +60,50 @@ def generate_image(p):
         except: continue
     raise RuntimeError("Image failed")
 
-# GHIBLI PROMPTS
-GHIBLI_PROMPTS = {
-"Spirited Away Pork Buns": "Spirited Away steamed pork buns, photorealistic real food, fluffy baozi with juicy pork filling, steam rising, ultra detailed food photography, 8k, black background",
-"Howl's Breakfast": "Howl's Moving Castle breakfast, real food, two fried eggs and bacon sizzling in cast iron pan, butter melting, photorealistic, 8k food photography",
-"Ponyo Ramen": "Ponyo ramen, real ham ramen with boiled egg and green onions, steaming hot bowl, photorealistic, ultra detailed, Ghibli food to real life",
-"Totoro Bento": "My Neighbor Totoro bento box, real Japanese lunch box with rice, shishamo fish, plum, photorealistic, studio lighting",
-"Kiki's Chocolate Cake": "Kiki's Delivery Service chocolate cake, real bakery cake with chocolate frosting, photorealistic, 8k",
-"Laputa Toast": "Castle in the Sky Laputa toast with fried egg on top, real thick toast, photorealistic breakfast, morning light, 8k",
-"Spirited Away Onigiri": "Spirited Away onigiri rice balls, real Japanese onigiri with nori, salt crystals visible, photorealistic",
-"Howl's Cheese Fondue": "Howl's Moving Castle cheese fondue, real melted cheese with bread dipping, photorealistic, cinematic lighting",
-"Mononoke Soup": "Princess Mononoke mushroom soup, real forest mushroom soup in wooden bowl, photorealistic, steam",
-"Totoro Strawberry Cake": "My Neighbor Totoro strawberry shortcake, real Japanese strawberry cake with cream and berries, photorealistic, 8k food photo"
+# ALL PRESETS
+PRESETS = {
+"--- GHIBLI REAL FOOD ---": "",
+"Spirited Away Buns": "Spirited Away steamed pork buns, photorealistic real food, fluffy baozi, steam rising, 8k food photography, black background",
+"Howl's Breakfast": "Howl's Moving Castle breakfast, real fried eggs and bacon sizzling in cast iron pan, photorealistic, 8k",
+"Ponyo Ramen": "Ponyo ramen, real ham ramen with boiled egg and green onions, steaming hot, photorealistic, ultra detailed",
+"Totoro Bento": "My Neighbor Totoro bento box, real Japanese lunch box, photorealistic, studio lighting, 8k",
+
+"--- OGGY REAL LIFE ---": "",
+"Oggy Real Cat": "Oggy from Oggy and the Cockroaches, photorealistic real blue-grey fluffy cat standing like human wearing clothes, ultra detailed fur, 8k, black background",
+"Oggy Cockroaches Real": "Dee Dee Joey Marky cockroaches from Oggy, photorealistic real cockroaches with big eyes standing like humans, funny, ultra detailed, 8k",
+"Jack Real": "Jack from Oggy and the Cockroaches, photorealistic real olive green muscular cat, angry expression, real fur, 8k",
+
+"--- TOM & JERRY REAL ---": "",
+"Tom & Jerry Real Fight": "Tom and Jerry in real life, photorealistic grey cat and brown mouse fighting in kitchen, ultra detailed fur, National Geographic style, 8k",
+"Tom Real Cat": "Tom the cat from Tom and Jerry, photorealistic real grey and white cat with yellow eyes, shocked expression, ultra detailed, 8k",
+"Jerry Real Mouse": "Jerry the mouse from Tom and Jerry, photorealistic real cute brown mouse with big ears, smart expression, real fur texture, 8k",
+"Spike Real Dog": "Spike the bulldog from Tom and Jerry, photorealistic real bulldog with spiked collar, angry, ultra detailed, 8k",
+
+"--- CHOTA BHEEM & INDIAN ---": "",
+"Chota Bheem Real Boy": "Chota Bheem in real life, photorealistic 9 year old Indian boy with dhoti, strong, bald with small tuft, laddoo in hand, Dholakpur, ultra detailed, 8k",
+"Chutki Real": "Chutki from Chota Bheem, photorealistic real Indian girl with two ponytails, pink dress, cute, 8k",
+"Motu Patlu Real": "Motu Patlu in real life, photorealistic two middle aged Indian men, one fat bald with moustache eating samosa, one thin, Furfuri Nagar, ultra detailed, 8k",
+"Motu Samosa Real": "Motu eating samosa, photorealistic real samosa with chutney, ultra detailed food photography, 8k",
+"Doraemon Real": "Doraemon in real life, photorealistic blue robot cat with real fur texture, standing with Nobita, 8k",
+"Shin Chan Real": "Shin Chan in real life, photorealistic 5 year old Japanese boy with big head, funny face, 8k, real skin texture"
 }
 
 st.title("Indian AI")
 
-with st.popover("Tools"):
+with st.popover("Tools & Presets"):
     st.selectbox("Mode",["Both","Text","Image"],key="mode")
-    st.markdown("**Ghibli → Real Food Prompts**")
-    sel = st.selectbox("Choose Ghibli Food", list(GHIBLI_PROMPTS.keys()))
-    if st.button("Use this prompt"):
-        st.session_state.ghibli_prompt = GHIBLI_PROMPTS[sel]
+    st.markdown("**Cartoon → Real Image Presets**")
+    sel = st.selectbox("Choose preset", [k for k in PRESETS.keys() if "---" not in k])
+    if st.button("Use this prompt", use_container_width=True):
+        st.session_state.preset_prompt = PRESETS[sel]
+    st.markdown("**Upload Files**")
+    uploaded = st.file_uploader("Upload", type=["png","jpg","jpeg","webp","txt","pdf"], label_visibility="collapsed")
+    if uploaded:
+        save_path = GENERATED_DIR / f"upload_{uuid.uuid4().hex}_{uploaded.name}"
+        save_path.write_bytes(uploaded.getvalue())
+        st.success(f"Uploaded: {uploaded.name}")
+        if uploaded.type.startswith("image"):
+            st.image(str(save_path), width=200)
 
 for i,m in enumerate(st.session_state.messages):
     with st.container(border=True):
@@ -87,12 +112,12 @@ for i,m in enumerate(st.session_state.messages):
         elif m["type"]=="image" and os.path.exists(m["path"]): st.markdown("**Indian AI**"); st.image(m["path"],use_container_width=True); st.download_button("Download image",open(m["path"],"rb").read(),file_name=Path(m["path"]).name,key=f"im{i}")
 
 with st.form("f",clear_on_submit=True):
-    q=st.text_input("msg", value=st.session_state.ghibli_prompt, placeholder="Ask anything or use Ghibli prompt...", label_visibility="collapsed")
+    q=st.text_input("msg", value=st.session_state.preset_prompt, placeholder="Ask anything or use preset above...", label_visibility="collapsed")
     go=st.form_submit_button("Send",use_container_width=True)
 
 if go and q.strip():
     q=q.strip()
-    st.session_state.ghibli_prompt=""
+    st.session_state.preset_prompt=""
     st.session_state.messages.append({"role":"user","type":"text","content":q})
     mode=st.session_state.mode
     if mode in ["Both","Text"]:
