@@ -17,7 +17,7 @@ bg_url = f'url("data:image/jpg;base64,{bg_data}")' if bg_data else 'url("https:/
 st.markdown(f"""
 <style>
 .stApp {{
-    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.85)), {bg_url};
+    background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.85)), {bg_url};
     background-size: cover;
     background-attachment: fixed;
 }}
@@ -35,37 +35,30 @@ if not HF_KEY:
     HF_KEY = os.getenv("HF_TOKEN")
 
 if not HF_KEY:
-    st.error("Add HF_TOKEN in Secrets: huggingface.co/settings/tokens")
+    st.warning("Add HF_TOKEN: Manage app -> Settings -> Secrets -> HF_TOKEN = 'hf_...'")
+    st.info("Get free token from huggingface.co/settings/tokens")
     st.stop()
 
-col1, col2 = st.columns([1.2, 1])
-
-with col1:
+c1, c2 = st.columns([1.2, 1])
+with c1:
     st.markdown("# Indian AI Generator")
-    prompt = st.text_area("Prompt", "Chota Bheem as real 8 year old Indian boy, school uniform, smiling, photorealistic, ultra realistic", height=140)
+    prompt = st.text_area("Prompt", "Chota Bheem as real 8 year old Indian boy, school uniform, smiling, photorealistic", height=140)
     btn = st.button("Generate REAL Image - FREE")
 
-with col2:
+with c2:
     if btn:
-        with st.spinner("Generating FREE... 20 sec"):
-            try:
-                API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
-                headers = {"Authorization": f"Bearer {HF_KEY}"}
-                payload = {"inputs": f"{prompt}, photorealistic, ultra realistic, real Indian person, DSLR, 8k"}
-                
-                response = requests.post(API_URL, headers=headers, json=payload, timeout=120)
-                
-                if response.status_code == 200:
-                    image = Image.open(io.BytesIO(response.content))
-                    Path("generated").mkdir(exist_ok=True)
-                    path = f"generated/{uuid.uuid4().hex}.jpg"
-                    image.save(path)
-                    st.image(path, use_container_width=True)
-                    st.download_button("Download HD", open(path,"rb"), file_name="indian.jpg", mime="image/jpeg")
-                    st.success("Done! FREE")
-                else:
-                    st.error(f"Error {response.status_code}: {response.text[:300]}")
-                    if "loading" in response.text.lower():
-                        st.info("Model is loading - wait 30 sec and click again (free model sleeps)")
-            except Exception as e:
-                st.error(f"Error: {e}")
+        with st.spinner("Generating..."):
+            API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+            headers = {"Authorization": f"Bearer {HF_KEY}"}
+            r = requests.post(API_URL, headers=headers, json={"inputs": prompt}, timeout=120)
+            if r.status_code == 200:
+                img = Image.open(io.BytesIO(r.content))
+                Path("generated").mkdir(exist_ok=True)
+                p = f"generated/{uuid.uuid4().hex}.jpg"
+                img.save(p)
+                st.image(p, use_container_width=True)
+                st.download_button("Download", open(p,"rb"), file_name="indian.jpg")
+                st.success("Done!")
+            else:
+                st.error(f"Error: {r.text[:400]}")
+                st.info("If 'loading' -> wait 30 sec and try again")
