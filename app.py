@@ -19,14 +19,9 @@ st.markdown("""
 <style>
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:20vh;margin-bottom:25px}
-/* FAKE + BUTTON - BLACK BOX WHITE TEXT - ONLY 1 + */
-.fake-plus{background:#000!important;border:1px solid #333!important;border-radius:12px!important;height:52px!important;display:flex!important;align-items:center!important;justify-content:center!important;color:white!important;font-size:32px!important;font-weight:300!important}
-/* REAL UPLOADER - INVISIBLE ON TOP OF FAKE */
+.fake-plus{background:#000!important;border:1px solid #333!important;border-radius:12px!important;height:52px!important;display:flex!important;align-items:center!important;justify-content:center!important;color:white!important;font-size:32px!important}
 div[data-testid="stFileUploader"]{margin-top:-52px!important;opacity:0!important;height:52px!important;position:relative!important;z-index:10!important}
-div[data-testid="stFileUploader"] section{height:52px!important}
-/* ASK CHATGPT - BLACK BOX WHITE TEXT */
 .stTextInput input{background:#000!important;color:white!important;border:1px solid #333!important;border-radius:12px!important;height:52px!important}
-.stTextInput input::placeholder{color:white!important}
 div.stButton>button{background:white!important;color:black!important;border-radius:25px!important;width:100%;height:50px;font-weight:700!important}
 </style>
 """, unsafe_allow_html=True)
@@ -38,13 +33,15 @@ with mid:
     c1, c2 = st.columns([1,4])
     with c1:
         st.markdown('<div class="fake-plus">+</div>', unsafe_allow_html=True)
-        uploaded = st.file_uploader("", type=["jpg","png","webp"], label_visibility="collapsed")
+        st.file_uploader("file", type=["jpg","png","webp"], label_visibility="collapsed")
     with c2:
-        prompt = st.text_input("", placeholder="Ask ChatGPT", label_visibility="collapsed")
+        prompt = st.text_input("prompt", placeholder="Ask ChatGPT", label_visibility="collapsed")
     
     if st.button("Generate"):
         if prompt:
             enc = urllib.parse.quote(prompt + ", photorealistic, 8k")
             seed = random.randint(1, 9999999)
-            url = f"https://image.pollinations.ai/prompt/{enc}?model=flux-realism&width=1024&height=1024&seed={seed}&nologo=true"
+            # POLLINATION API LINK - FREE NO KEY
+            url = f"https://image.pollinations.ai/prompt/{enc}?model=flux-realism&width=1024&height=1024&seed={seed}&nologo=true&enhance=true"
             st.image(url, use_container_width=True)
+            st.write(f"API: {url}")
