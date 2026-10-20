@@ -3,6 +3,7 @@ from pathlib import Path
 
 st.set_page_config(page_title="ChatGPT", layout="wide")
 
+# BACKGROUND
 p = Path("static/india.jpg")
 if p.exists():
     b64 = base64.b64encode(p.read_bytes()).decode()
@@ -13,8 +14,8 @@ st.markdown("""
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:22px;font-weight:600}
 
-/* PLUS UPLOADER - ONLY + NO ARROW */
-div[data-testid="stFileUploader"]{width:100%}
+/* MAKE FILE UPLOADER LOOK LIKE + BUTTON ONLY */
+div[data-testid="stFileUploader"]{width:100% !important}
 div[data-testid="stFileUploader"] section{
     background:#000 !important;
     border:1px solid #555 !important;
@@ -26,25 +27,11 @@ div[data-testid="stFileUploader"] section{
     align-items:center !important;
     justify-content:center !important;
 }
-div[data-testid="stFileUploader"] section > div{margin:0 !important}
 div[data-testid="stFileUploader"] svg{display:none !important}
 div[data-testid="stFileUploader"] span{display:none !important}
 div[data-testid="stFileUploader"] small{display:none !important}
-div[data-testid="stFileUploader"] section > div:first-child{display:none !important}
+div[data-testid="stFileUploader"] div[data-testid="stFileUploaderFileName"]{display:none !important}
 
-div[data-testid="stFileUploader"] button{
-    background:transparent !important;
-    border:0 !important;
-    width:100% !important;
-    height:52px !important;
-}
-div[data-testid="stFileUploader"] button p{
-    color:white !important;
-    font-size:32px !important;
-    font-weight:300 !important;
-}
-
-/* INPUT WHITE TEXT */
 div[data-testid="stTextInput"] input{
     background:#000 !important;
     color:white !important;
@@ -78,45 +65,44 @@ with mid:
     with st.form("f"):
         c1,c2=st.columns([1,4])
         with c1:
-            # THIS + WILL OPEN GALLERY ON MOBILE
-            uploaded = st.file_uploader("plus", type=["jpg","jpeg","png","webp"], label_visibility="collapsed", key="plus_mobile")
+            up = st.file_uploader("", type=["jpg","png","webp","jpeg"], label_visibility="collapsed", key="plus")
         with c2:
-            prompt=st.text_input("p", placeholder="Ask ChatGPT", label_visibility="collapsed")
-        gen=st.form_submit_button("Generate")
+            prompt=st.text_input("", placeholder="Ask ChatGPT", label_visibility="collapsed")
+        gen=st.form_submit_button("Generate", use_container_width=True)
 
     if gen and prompt and prompt.strip():
         url=f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt.strip())}?model=flux&width=1024&height=1024&seed={random.randint(1,9999999)}&nologo=true"
-        try:
-            r=requests.get(url, timeout=60)
-            st.session_state.url=url
-            st.session_state.data=r.content
-            st.rerun()
-        except Exception as e:
-            st.error(str(e))
-
-    if uploaded:
-        st.success(f"Selected: {uploaded.name}")
-        st.image(uploaded, width=200)
+        r=requests.get(url, timeout=60)
+        st.session_state.url=url
+        st.session_state.data=r.content
+        st.rerun()
 
     if st.session_state.url:
         st.image(st.session_state.url, use_container_width=True)
         if st.session_state.data:
-            st.download_button("Download", st.session_state.data, "image.jpg", "image/jpeg", use_container_width=True)
+            st.download_button("Download", st.session_state.data, "image.jpg", use_container_width=True)
 
-# FORCE + AND REMOVE ARROW - MOBILE
+# JS THAT CREATES PLUS SIGN
 st.components.v1.html("""
 <script>
 const doc = window.parent.document;
-setInterval(()=>{
-  const btnP = doc.querySelector('[data-testid="stFileUploader"] button p');
-  if(btnP){
-    btnP.innerText='+';
-    btnP.style.fontSize='32px';
-    btnP.style.color='white';
+function makePlus(){
+  const sec = doc.querySelector('div[data-testid="stFileUploader"] section button');
+  if(sec){
+    const p = sec.querySelector('p');
+    if(p){
+      p.innerText = '+';
+      p.style.color = 'white';
+      p.style.fontSize = '34px';
+      p.style.fontWeight = '300';
+      p.style.lineHeight = '52px';
+    }
+    // Remove any other text nodes that are arrow
+    const spans = doc.querySelectorAll('div[data-testid="stFileUploader"] span, div[data-testid="stFileUploader"] small, div[data-testid="stFileUploader"] svg');
+    spans.forEach(s=> s.style.display='none');
   }
-  doc.querySelectorAll('[data-testid="stFileUploader"] svg, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small').forEach(e=>{
-    e.style.display='none';
-  });
-}, 300);
+}
+setInterval(makePlus, 200);
+makePlus();
 </script>
 """, height=0)
