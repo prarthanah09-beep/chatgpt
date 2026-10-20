@@ -21,23 +21,39 @@ st.markdown("""
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:10vh;margin-bottom:20px}
 
-/* + BUTTON - BLACK BOX WHITE TEXT */
-.fake-plus{background:#000!important;border:1px solid #333!important;border-radius:12px!important;height:52px!important;display:flex!important;align-items:center!important;justify-content:center!important;color:white!important;font-size:32px!important}
-div[data-testid="stFileUploader"]{margin-top:-52px!important;opacity:0!important;height:52px!important;position:relative!important;z-index:10!important}
+/* + BUTTON - REAL BUTTON - BLACK BOX WHITE TEXT - NO OVERLAY */
+div[data-testid="stFileUploader"]{background:transparent!important;border:none!important}
+div[data-testid="stFileUploader"] section{background:transparent!important;border:none!important;padding:0!important}
+div[data-testid="stFileUploader"] section>div:first-child{display:none!important}
+div[data-testid="stFileUploader"] section small{display:none!important}
+div[data-testid="stFileUploader"] section button{
+    background:#000!important;
+    border:1px solid #555!important;
+    border-radius:12px!important;
+    height:52px!important;
+    width:100%!important;
+    color:white!important;
+}
+div[data-testid="stFileUploader"] section button svg{display:none!important}
+div[data-testid="stFileUploader"] section button div p{font-size:0!important}
+div[data-testid="stFileUploader"] section button div p::after{
+    content:"+";
+    font-size:32px!important;
+    color:white!important;
+    display:block!important;
+}
 
-/* ASK CHATGPT TEXT BOX - BLACK BOX WHITE TEXT */
+/* ASK CHATGPT - BLACK BOX WHITE TEXT */
 .stTextInput input{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:52px!important}
 .stTextInput input::placeholder{color:white!important;opacity:0.7!important}
-div[data-testid="stTextInput"] label{color:white!important}
 
-/* GENERATE BUTTON - BLACK BOX WHITE TEXT */
-div[data-testid="stFormSubmitButton"] button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:52px!important;font-weight:600!important}
+/* GENERATE - BLACK BOX WHITE TEXT - NO OVERLAP */
+div[data-testid="stFormSubmitButton"] button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:52px!important}
 div[data-testid="stFormSubmitButton"] button p{color:white!important}
 
-/* COPY & DOWNLOAD - BLACK BOX WHITE TEXT */
+/* DOWNLOAD - BLACK BOX WHITE TEXT */
 div[data-testid="stDownloadButton"] button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:48px!important}
 div[data-testid="stDownloadButton"] button p{color:white!important}
-div[data-testid="stForm"]{background:transparent!important;border:none!important}
 </style>
 """, unsafe_allow_html=True)
 
@@ -45,9 +61,7 @@ st.markdown('<div class="center">What can I help with?</div>', unsafe_allow_html
 
 if "last_gen" not in st.session_state:
     st.session_state.last_gen = 0
-if "gen_url" not in st.session_state:
     st.session_state.gen_url = None
-if "gen_data" not in st.session_state:
     st.session_state.gen_data = None
 
 _, mid, _ = st.columns([1,2,1])
@@ -55,7 +69,6 @@ with mid:
     with st.form("chat_form", clear_on_submit=False):
         c1, c2 = st.columns([1,4])
         with c1:
-            st.markdown('<div class="fake-plus">+</div>', unsafe_allow_html=True)
             st.file_uploader("file", type=["jpg","png","webp"], label_visibility="collapsed")
         with c2:
             prompt = st.text_input("prompt", placeholder="Ask ChatGPT", label_visibility="collapsed")
@@ -63,9 +76,8 @@ with mid:
 
     if gen_clicked and prompt:
         now = time.time()
-        diff = now - st.session_state.last_gen
-        if diff < 46:
-            st.error(f"⏳ Wait {int(46-diff)} sec")
+        if now - st.session_state.last_gen < 46:
+            st.error(f"⏳ Wait {int(46-(now-st.session_state.last_gen))} sec")
         else:
             st.session_state.last_gen = now
             enc = urllib.parse.quote(prompt + ", photorealistic, 8k")
@@ -81,14 +93,11 @@ with mid:
     if st.session_state.gen_url:
         st.image(st.session_state.gen_url, width="stretch")
         if st.session_state.gen_data:
-            c1, c2 = st.columns(2)
-            with c1:
-                # COPY - BLACK BOX WHITE TEXT
+            b1, b2 = st.columns(2)
+            with b1:
                 st.markdown(f"""
                 <button onclick="navigator.clipboard.writeText('{st.session_state.gen_url}');alert('Copied!')" 
-                style="width:100%;height:48px;background:#000;color:white;border:1px solid #555;border-radius:12px;cursor:pointer;font-weight:600">
-                📋 Copy Link
-                </button>
+                style="width:100%;height:48px;background:#000;color:white;border:1px solid #555;border-radius:12px;cursor:pointer">📋 Copy Link</button>
                 """, unsafe_allow_html=True)
-            with c2:
+            with b2:
                 st.download_button("⬇️ Download", data=st.session_state.gen_data, file_name="image.jpg", mime="image/jpeg", use_container_width=True)
