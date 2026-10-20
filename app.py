@@ -1,58 +1,24 @@
 import streamlit as st, urllib.parse, random, time, requests, base64
 from pathlib import Path
-
-st.set_page_config(page_title="ChatGPT", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ChatGPT", layout="wide")
 
 API_BASE = st.secrets.get("POLLINATION_API", "https://image.pollinations.ai/prompt")
 MODEL = st.secrets.get("MODEL", "flux")
 
-# Background
 p = Path("static/india.jpg")
 if p.exists():
     b64 = base64.b64encode(p.read_bytes()).decode()
-    st.markdown(f"""
-    <style>
-    .stApp{{
-        background:linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.75)),url("data:image/jpg;base64,{b64}");
-        background-size:cover;
-        background-position:center;
-        background-attachment:fixed;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<style>.stApp{{background:linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.75)),url("data:image/jpg;base64,{b64}");background-size:cover;background-position:center}}</style>', unsafe_allow_html=True)
 
 st.markdown("""
 <style>
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:20px;font-weight:600}
-
-.plus-only{
-    background:#000;
-    border:1px solid #555;
-    border-radius:12px;
-    height:52px;
-    width:100%;
-    color:white;
-    font-size:32px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-div[data-testid="stTextInput"] input{
-    background:#000 !important;
-    color:white !important;
-    border:1px solid #555 !important;
-    border-radius:12px !important;
-    height:52px !important;
-}
-div[data-testid="stFormSubmitButton"] button, div[data-testid="stDownloadButton"] button{
-    background:#000 !important;
-    color:white !important;
-    border:1px solid #555 !important;
-    border-radius:12px !important;
-    height:45px !important;
-}
+.plus-only{background:#000;border:1px solid #555;border-radius:12px;height:52px;width:100%;color:white;font-size:32px;display:flex;align-items:center;justify-content:center}
+div[data-testid="stTextInput"] input{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important;height:52px !important}
+div[data-testid="stTextInput"] input::placeholder{color:white !important;opacity:1 !important}
+div[data-testid="stTextInput"] input::-webkit-input-placeholder{color:white !important;opacity:1 !important}
+div[data-testid="stFormSubmitButton"] button, div[data-testid="stDownloadButton"] button{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important;height:45px !important}
 div[data-testid="stFormSubmitButton"] button *{color:white !important}
 </style>
 """, unsafe_allow_html=True)
@@ -71,7 +37,6 @@ with mid:
         with c2:
             prompt=st.text_input("p", placeholder="Ask ChatGPT", label_visibility="collapsed")
         gen=st.form_submit_button("Generate")
-
     if gen and prompt and prompt.strip():
         now=time.time()
         if now - st.session_state.last_gen < 46:
@@ -85,7 +50,6 @@ with mid:
             except:
                 pass
             st.rerun()
-
     if st.session_state.gen_url:
         st.image(st.session_state.gen_url, use_container_width=True)
         if st.session_state.gen_data:
