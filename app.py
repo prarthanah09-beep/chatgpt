@@ -11,7 +11,7 @@ def get_bg():
 
 bg = get_bg()
 if bg:
-    st.markdown(f"""<style>.stApp{{background:linear-gradient(rgba(0,0,0,0.75),rgba(0,0,0,0.85)),url("data:image/jpg;base64,{bg}");background-size:cover;background-position:center}}</style>""", unsafe_allow_html=True)
+    st.markdown(f"""<style>.stApp{{background:linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.85)),url("data:image/jpg;base64,{bg}");background-size:cover;background-position:center}}</style>""", unsafe_allow_html=True)
 else:
     st.markdown("<style>.stApp{background:#000!important}</style>", unsafe_allow_html=True)
 
@@ -19,16 +19,18 @@ st.markdown("""
 <style>
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:20vh;margin-bottom:25px}
-/* FIX: ONLY 1 + - HIDE ALL ICONS */
+/* + BUTTON - BLACK BOX WHITE TEXT - VISIBLE NOW */
 div[data-testid="stFileUploader"]{background:transparent!important;border:none!important}
-div[data-testid="stFileUploader"] section{background:#000!important;border:1px solid #333!important;border-radius:12px!important;min-height:52px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important}
-div[data-testid="stFileUploader"] section > div, div[data-testid="stFileUploader"] section svg, div[data-testid="stFileUploader"] section span, div[data-testid="stFileUploader"] section small{display:none!important}
-div[data-testid="stFileUploader"] section button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;width:60px!important;height:52px!important}
-div[data-testid="stFileUploader"] section button *{display:none!important}
-div[data-testid="stFileUploader"] section button::after{content:"+";color:white;font-size:32px;font-weight:300;display:block!important}
-/* ASK CHAT - BLACK BOX WHITE TEXT */
+div[data-testid="stFileUploader"] section{background:#000!important;border:1px solid #333!important;border-radius:12px!important;height:52px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important}
+div[data-testid="stFileUploader"] section>div:first-child{display:none!important}
+div[data-testid="stFileUploader"] section small{display:none!important}
+div[data-testid="stFileUploader"] section button{background:#000!important;border:none!important;width:100%!important;height:52px!important}
+div[data-testid="stFileUploader"] section button svg{display:none!important}
+div[data-testid="stFileUploader"] section button div p{font-size:0!important}
+div[data-testid="stFileUploader"] section button div p::after{content:"+";font-size:32px!important;color:white!important;display:block!important}
+/* ASK CHATGPT - BLACK BOX WHITE TEXT */
 .stTextInput input{background:#000!important;color:white!important;border:1px solid #333!important;border-radius:12px!important;height:52px!important}
-.stTextInput input::placeholder{color:white!important}
+.stTextInput input::placeholder{color:white!important;opacity:0.8}
 div.stButton>button{background:white!important;color:black!important;border-radius:25px!important;width:100%;height:50px;font-weight:700!important}
 </style>
 """, unsafe_allow_html=True)
