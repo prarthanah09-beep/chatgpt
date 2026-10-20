@@ -4,65 +4,80 @@ import os, uuid, base64
 from pathlib import Path
 
 # --- CONFIG ---
-st.set_page_config(page_title="Indian AI Real Generator", page_icon="🇮🇳", layout="wide")
+st.set_page_config(page_title="Indian AI - Real Generator", page_icon="🇮🇳", layout="wide")
 GENERATED_DIR = Path("generated")
 GENERATED_DIR.mkdir(exist_ok=True)
 
-# --- BACKGROUND IMAGE CSS ---
-def set_bg():
-    st.markdown("""
-    <style>
-    .stApp {
-        background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.85)), url("https://images.unsplash.com/photo-1531146020307-15e1d84d0b67?q=80&w=2000");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }
-    h1, h2, h3, p, label { color: white !important; }
-    .stTextInput input {
-        background: rgba(255,255,255,0.9) !important;
-        color: black !important;
-        border-radius: 12px !important;
-        font-size: 18px !important;
-    }
-    div.stButton > button {
-        background: linear-gradient(90deg, #FF9933, #FFFFFF, #138808);
-        color: black !important;
-        font-weight: 800 !important;
-        font-size: 18px !important;
-        border-radius: 25px !important;
-        padding: 12px 30px !important;
-        border: none !important;
-        width: 100%;
-    }
-    div.stButton > button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px #FF9933;
-    }
-    .image-card {
-        background: rgba(255,255,255,0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 20px;
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# --- BACKGROUND FROM static/india.jpg ---
+def get_base64_image(image_path):
+    if Path(image_path).exists():
+        with open(image_path, "rb") as img:
+            return base64.b64encode(img.read()).decode()
+    return None
 
-set_bg()
+# Try local file first, then fallback
+local_bg = get_base64_image("static/india.jpg")
+if local_bg:
+    bg_css = f'url("data:image/jpg;base64,{local_bg}")'
+else:
+    # Fallback if static not found
+    bg_css = 'url("https://images.unsplash.com/photo-1531146020307-15e1d84d0b67?q=80&w=2000")'
 
-# --- KEY ---
-GEMINI_KEY = st.secrets.get("GEMINI_KEY") or os.getenv("GEMINI_KEY")
+st.markdown(f"""
+<style>
+.stApp {{
+    background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.85)), {bg_css};
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}}
+h1, h2, h3, p, label {{ color: white !important; }}
+.stTextArea textarea {{
+    background: rgba(255,255,255,0.95) !important;
+    color: black !important;
+    border-radius: 15px !important;
+    font-size: 17px !important;
+}}
+div.stButton > button {{
+    background: linear-gradient(90deg, #FF9933, #FFFFFF, #138808);
+    color: black !important;
+    font-weight: 900 !important;
+    font-size: 20px !important;
+    border-radius: 30px !important;
+    padding: 15px !important;
+    border: none !important;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(255,153,51,0.4);
+}}
+div.stButton > button:hover {{
+    transform: scale(1.02);
+    box-shadow: 0 0 30px #FF9933;
+}}
+.image-card {{
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid rgba(255,255,255,0.2);
+}}
+</style>
+""", unsafe_allow_html=True)
+
+# --- API KEY - Works on BOTH Streamlit + Hugging Face ---
+GEMINI_KEY = st.secrets.get("GEMINI_KEY") if hasattr(st, 'secrets') else None
 if not GEMINI_KEY:
-    st.error("❌ Add GEMINI_KEY in Manage app -> Settings -> Secrets")
-    st.info("Get free key: https://aistudio.google.com/app/apikey")
+    GEMINI_KEY = os.getenv("GEMINI_KEY") or os.getenv("GOOGLE_API_KEY")
+
+if not GEMINI_KEY:
+    st.error("❌ API Key Missing")
+    st.info("Streamlit Cloud: Manage app -> Settings -> Secrets -> GEMINI_KEY\nHugging Face: Space Settings -> Variables and Secrets -> New Secret")
     st.stop()
 
 client = genai.Client(api_key=GEMINI_KEY)
 
-# --- CORE GENERATOR WITH AUTO FALLBACK ---
+# --- GENERATOR WITH 3 MODEL FALLBACK (NO 429) ---
 def generate_image(prompt):
-    real_prompt = f"{prompt}, photorealistic, ultra realistic, real life photo, Indian face, natural skin texture, DSLR, 8k, sharp focus"
+    real_prompt = f"{prompt}, photorealistic, ultra realistic, real life photo, Indian person, natural skin texture, DSLR, 8k, highly detailed"
     models_to_try = [
         "gemini-2.5-flash-image",
         "gemini-2.0-flash-preview-image-generation",
@@ -71,10 +86,7 @@ def generate_image(prompt):
     last_err = ""
     for m in models_to_try:
         try:
-            response = client.models.generate_content(
-                model=m,
-                contents=[real_prompt],
-            )
+            response = client.models.generate_content(model=m, contents=[real_prompt])
             for part in response.parts:
                 if part.inline_data:
                     file_path = GENERATED_DIR / f"img_{uuid.uuid4().hex}.jpg"
@@ -87,41 +99,38 @@ def generate_image(prompt):
     raise Exception(last_err)
 
 # --- UI ---
-col1, col2 = st.columns([1, 1])
+c1, c2 = st.columns([1.2, 1])
 
-with col1:
-    st.markdown("""
-    # 🇮🇳 Indian AI - Real Life
-    ### Generator (FREE FOREVER)
-    **500 images/day FREE - No Card - Powered by Gemini 2.5**
-    """)
+with c1:
+    st.markdown("# 🇮🇳 Indian AI - Real Life Generator")
+    st.markdown("### 1000 Images/Day FREE | No Credit Card")
     st.markdown('<div class="image-card">', unsafe_allow_html=True)
-    prompt = st.text_area("Enter prompt", "Chota Bheem as real 8 year old Indian boy, real life, smiling, school uniform", height=120)
-    generate_btn = st.button("✨ Generate REAL Image")
-    
-    st.markdown("**Try:** Motu Patlu real, Shinchan real Indian boy, Doraemon real cat, Little Singham")
+    prompt = st.text_area("Prompt", "Chota Bheem as real 8 year old Indian boy, real life, school uniform, smiling, ultra realistic", height=130)
+    btn = st.button("✨ Generate REAL Image")
+    st.caption("Try: Motu Patlu real, Shinchan as Indian boy, Doraemon real cat, Little Singham real")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    if generate_btn and prompt:
-        with st.spinner("🎨 Creating real Indian photo... wait 10 sec..."):
+with c2:
+    if btn and prompt:
+        with st.spinner("Creating real photo... 10 sec"):
             try:
                 path, model_used = generate_image(prompt)
                 st.markdown('<div class="image-card">', unsafe_allow_html=True)
-                st.image(path, caption=f"Generated by {model_used}", use_container_width=True)
+                st.image(path, caption=f"Made with {model_used}", use_container_width=True)
                 with open(path, "rb") as f:
-                    st.download_button("📥 Download HD Image", f, file_name="indian_ai_real.jpg", mime="image/jpeg")
-                st.success(f"Done with {model_used}!")
+                    st.download_button("📥 Download HD", f, file_name="indian_real.jpg", mime="image/jpeg")
+                st.success(f"Generated!")
                 st.markdown('</div>', unsafe_allow_html=True)
             except Exception as e:
                 if "429" in str(e):
-                    st.error("⏳ Google is busy (10 req/min limit). Wait 60 seconds and try again. This is free tier limit.")
+                    st.error("⏳ Free limit: Wait 60 seconds and try again")
                 else:
                     st.error(f"Error: {e}")
     else:
         st.markdown('<div class="image-card">', unsafe_allow_html=True)
-        st.info("👈 Enter prompt and click Generate\n\nYour image will appear here in HD")
-        st.image("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800", caption="Example - Real will be yours")
+        st.info("👈 Your REAL image will appear here")
+        if local_bg:
+            st.success("✅ Using your static/india.jpg as background")
         st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown("<center style='color:white; margin-top:50px;'>Made with ❤️ in India | Free Forever | No API Cost</center>", unsafe_allow_html=True)
+st.markdown("<center style='color:rgba(255,255,255,0.7);margin-top:40px;'>Made with ❤️ in India | Works on Streamlit + Hugging Face</center>", unsafe_allow_html=True)
