@@ -5,7 +5,6 @@ st.set_page_config(page_title="ChatGPT", layout="wide")
 API_BASE = st.secrets.get("POLLINATION_API", "https://image.pollinations.ai/prompt")
 MODEL = st.secrets.get("MODEL", "flux")
 
-# BG
 p = Path("static/india.jpg")
 if p.exists():
     st.markdown(f'<style>.stApp{{background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.8)),url("data:image/jpg;base64,{base64.b64encode(p.read_bytes()).decode()}");background-size:cover}}</style>', unsafe_allow_html=True)
@@ -14,33 +13,19 @@ st.markdown("""
 <style>
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:20px}
-
-/* BLACK BOX + ONLY - NO ARROW */
-div[data-testid="stFileUploader"] section{
-    background:#000 !important;
-    border:1px solid #555 !important;
-    border-radius:12px !important;
-    height:52px !important;
-    padding:0 !important;
+.plus-only{
+    background:#000;
+    border:1px solid #555;
+    border-radius:12px;
+    height:52px;
+    width:100%;
+    color:white;
+    font-size:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
 }
-/* HIDE ARROW AND ALL EXTRA TEXT */
-div[data-testid="stFileUploader"] svg{display:none !important}
-div[data-testid="stFileUploader"] span{display:none !important}
-div[data-testid="stFileUploader"] small{display:none !important}
-div[data-testid="stFileUploader"] section>div:first-child{display:none !important}
-
-div[data-testid="stFileUploader"] button{
-    background:#000 !important;
-    border:0 !important;
-    width:100% !important;
-    height:52px !important;
-}
-div[data-testid="stFileUploader"] button p{
-    color:white !important;
-    font-size:32px !important;
-}
-
-/* OTHER BLACK BOXES */
 div[data-testid="stTextInput"] input{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important;height:52px !important}
 div[data-testid="stFormSubmitButton"] button, div[data-testid="stDownloadButton"] button{background:#000 !important;color:white !important;border:1px solid #555 !important;border-radius:12px !important}
 div[data-testid="stFormSubmitButton"] button *{color:white !important}
@@ -57,8 +42,8 @@ with mid:
     with st.form("f"):
         c1,c2=st.columns([1,4])
         with c1:
-            # THIS IS + BUTTON - NO ARROW
-            st.file_uploader("+", type=["jpg","png","webp"], label_visibility="collapsed")
+            # ONLY + SIGN - NO ARROW - PURE DIV
+            st.markdown('<div class="plus-only">+</div>', unsafe_allow_html=True)
         with c2:
             prompt=st.text_input("p", placeholder="Ask ChatGPT", label_visibility="collapsed")
         gen=st.form_submit_button("Generate")
@@ -85,15 +70,3 @@ with mid:
                 st.markdown(f"""<button onclick="navigator.clipboard.writeText('{st.session_state.gen_url}')" style="width:100%;height:45px;background:#000;color:#fff;border:1px solid #555;border-radius:12px">Copy</button>""", unsafe_allow_html=True)
             with b2:
                 st.download_button("Download", st.session_state.gen_data, "img.jpg", "image/jpeg", use_container_width=True)
-
-# FORCE + AND REMOVE ARROW - MOBILE FIX
-st.components.v1.html("""
-<script>
-const d = window.parent.document;
-setInterval(()=>{
-  const btn = d.querySelector('[data-testid="stFileUploader"] button p');
-  if(btn){ btn.innerText = '+'; btn.style.fontSize='32px'; btn.style.color='white'; }
-  d.querySelectorAll('[data-testid="stFileUploader"] svg, [data-testid="stFileUploader"] span').forEach(e=>e.style.display='none');
-}, 300);
-</script>
-""", height=0)
