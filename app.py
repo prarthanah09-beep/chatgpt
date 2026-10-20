@@ -1,48 +1,127 @@
 import streamlit as st
-import google.generativeai as genai
-import os, uuid
+from google import genai
+import os, uuid, base64
 from pathlib import Path
 
-st.set_page_config(page_title="Indian AI - Real", layout="wide")
+# --- CONFIG ---
+st.set_page_config(page_title="Indian AI Real Generator", page_icon="🇮🇳", layout="wide")
 GENERATED_DIR = Path("generated")
 GENERATED_DIR.mkdir(exist_ok=True)
 
-GEMINI_KEY = st.secrets.get("GEMINI_KEY") or os.getenv("GEMINI_KEY")
+# --- BACKGROUND IMAGE CSS ---
+def set_bg():
+    st.markdown("""
+    <style>
+    .stApp {
+        background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.85)), url("https://images.unsplash.com/photo-1531146020307-15e1d84d0b67?q=80&w=2000");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    h1, h2, h3, p, label { color: white !important; }
+    .stTextInput input {
+        background: rgba(255,255,255,0.9) !important;
+        color: black !important;
+        border-radius: 12px !important;
+        font-size: 18px !important;
+    }
+    div.stButton > button {
+        background: linear-gradient(90deg, #FF9933, #FFFFFF, #138808);
+        color: black !important;
+        font-weight: 800 !important;
+        font-size: 18px !important;
+        border-radius: 25px !important;
+        padding: 12px 30px !important;
+        border: none !important;
+        width: 100%;
+    }
+    div.stButton > button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px #FF9933;
+    }
+    .image-card {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 20px;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+set_bg()
+
+# --- KEY ---
+GEMINI_KEY = st.secrets.get("GEMINI_KEY") or os.getenv("GEMINI_KEY")
 if not GEMINI_KEY:
-    st.error("Add GEMINI_KEY in Streamlit Secrets. Get from: https://aistudio.google.com/app/apikey")
+    st.error("❌ Add GEMINI_KEY in Manage app -> Settings -> Secrets")
+    st.info("Get free key: https://aistudio.google.com/app/apikey")
     st.stop()
 
-genai.configure(api_key=GEMINI_KEY)
+client = genai.Client(api_key=GEMINI_KEY)
 
+# --- CORE GENERATOR WITH AUTO FALLBACK ---
 def generate_image(prompt):
-    real_prompt = prompt + ", photorealistic, ultra realistic, real life photo, DSLR, 8k, highly detailed"
-    model = genai.GenerativeModel("gemini-2.5-flash-image")
-    response = model.generate_content(real_prompt)
-    image_bytes = response.parts[0].inline_data.data
-    file_path = GENERATED_DIR / f"image_{uuid.uuid4().hex}.jpg"
-    with open(file_path, "wb") as f:
-        f.write(image_bytes)
-    return str(file_path)
-
-st.title("Indian AI - Real Life Generator (FREE FOREVER)")
-st.markdown("500 images/day FREE - No Card - aistudio.google.com")
-
-prompt = st.text_input("Enter prompt", "Chota Bheem as real 8 year old Indian boy, real life")
-
-if st.button("Generate REAL Image"):
-    with st.spinner("Generating real life..."):
+    real_prompt = f"{prompt}, photorealistic, ultra realistic, real life photo, Indian face, natural skin texture, DSLR, 8k, sharp focus"
+    models_to_try = [
+        "gemini-2.5-flash-image",
+        "gemini-2.0-flash-preview-image-generation",
+        "gemini-2.0-flash-exp-image-generation"
+    ]
+    last_err = ""
+    for m in models_to_try:
         try:
-            path = generate_image(prompt)
-            st.image(path, caption="Real Generation")
-            st.success("Done! Saved: " + path)
+            response = client.models.generate_content(
+                model=m,
+                contents=[real_prompt],
+            )
+            for part in response.parts:
+                if part.inline_data:
+                    file_path = GENERATED_DIR / f"img_{uuid.uuid4().hex}.jpg"
+                    with open(file_path, "wb") as f:
+                        f.write(part.inline_data.data)
+                    return str(file_path), m
         except Exception as e:
-            st.error(f"Error: {e}")
+            last_err = str(e)
+            continue
+    raise Exception(last_err)
 
-with st.sidebar:
-    st.markdown("FREE FOREVER SETUP:")
-    st.markdown("1. Go to: https://aistudio.google.com/app/apikey")
-    st.markdown("2. Create API Key (no card)")
-    st.markdown("3. In Streamlit: Settings -> Secrets -> Add:")
-    st.code('GEMINI_KEY = "your_key_here"')
-    st.markdown("4. Save + Reboot")
+# --- UI ---
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    st.markdown("""
+    # 🇮🇳 Indian AI - Real Life
+    ### Generator (FREE FOREVER)
+    **500 images/day FREE - No Card - Powered by Gemini 2.5**
+    """)
+    st.markdown('<div class="image-card">', unsafe_allow_html=True)
+    prompt = st.text_area("Enter prompt", "Chota Bheem as real 8 year old Indian boy, real life, smiling, school uniform", height=120)
+    generate_btn = st.button("✨ Generate REAL Image")
+    
+    st.markdown("**Try:** Motu Patlu real, Shinchan real Indian boy, Doraemon real cat, Little Singham")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    if generate_btn and prompt:
+        with st.spinner("🎨 Creating real Indian photo... wait 10 sec..."):
+            try:
+                path, model_used = generate_image(prompt)
+                st.markdown('<div class="image-card">', unsafe_allow_html=True)
+                st.image(path, caption=f"Generated by {model_used}", use_container_width=True)
+                with open(path, "rb") as f:
+                    st.download_button("📥 Download HD Image", f, file_name="indian_ai_real.jpg", mime="image/jpeg")
+                st.success(f"Done with {model_used}!")
+                st.markdown('</div>', unsafe_allow_html=True)
+            except Exception as e:
+                if "429" in str(e):
+                    st.error("⏳ Google is busy (10 req/min limit). Wait 60 seconds and try again. This is free tier limit.")
+                else:
+                    st.error(f"Error: {e}")
+    else:
+        st.markdown('<div class="image-card">', unsafe_allow_html=True)
+        st.info("👈 Enter prompt and click Generate\n\nYour image will appear here in HD")
+        st.image("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800", caption="Example - Real will be yours")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown("<center style='color:white; margin-top:50px;'>Made with ❤️ in India | Free Forever | No API Cost</center>", unsafe_allow_html=True)
