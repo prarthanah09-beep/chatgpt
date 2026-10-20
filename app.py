@@ -20,17 +20,26 @@ st.markdown("""
 <style>
 header,footer{visibility:hidden}
 .center{color:white;font-size:28px;text-align:center;margin-top:18vh;margin-bottom:25px}
+
+/* ONLY + BUTTON - NO ARROW - BLACK BOX WHITE TEXT */
 div[data-testid="stFileUploader"] section{background:#000!important;border:1px solid #555!important;border-radius:12px!important;height:52px!important;padding:0!important}
 div[data-testid="stFileUploader"] section>div:first-child, div[data-testid="stFileUploader"] small{display:none!important}
-div[data-testid="stFileUploader"] section button{background:transparent!important;border:none!important;height:52px!important;width:100%!important;color:white!important}
+div[data-testid="stFileUploader"] section button{background:transparent!important;border:none!important;height:52px!important;width:100%!important}
 div[data-testid="stFileUploader"] section button svg{display:none!important}
 div[data-testid="stFileUploader"] section button div p{font-size:0!important}
-div[data-testid="stFileUploader"] section button div p::after{content:"↥  +";font-size:18px!important;color:white!important}
+div[data-testid="stFileUploader"] section button div p::after{
+    content:"+";  /* ONLY + HERE */
+    font-size:32px!important;
+    color:white!important;
+    display:block!important;
+    line-height:32px!important;
+}
+
 .stTextInput input{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:52px!important}
 .stTextInput input::placeholder{color:white!important}
 div[data-testid="stFormSubmitButton"] button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:45px!important}
 div[data-testid="stFormSubmitButton"] button p{color:white!important}
-div[data-testid="stDownloadButton"] button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important;height:48px!important}
+div[data-testid="stDownloadButton"] button{background:#000!important;color:white!important;border:1px solid #555!important;border-radius:12px!important}
 div[data-testid="stDownloadButton"] button p{color:white!important}
 </style>
 """, unsafe_allow_html=True)
@@ -69,8 +78,8 @@ with mid:
     if st.session_state.gen_url:
         st.image(st.session_state.gen_url, width="stretch")
         if st.session_state.gen_data:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f"""<button onclick="navigator.clipboard.writeText('{st.session_state.gen_url}');alert('Copied!')" style="width:100%;height:48px;background:#000;color:white;border:1px solid #555;border-radius:12px">📋 Copy Link</button>""", unsafe_allow_html=True)
-            with c2:
+            b1, b2 = st.columns(2)
+            with b1:
+                st.markdown(f"""<button onclick="navigator.clipboard.writeText('{st.session_state.gen_url}');alert('Copied!')" style="width:100%;height:48px;background:#000;color:white;border:1px solid #555;border-radius:12px">📋 Copy</button>""", unsafe_allow_html=True)
+            with b2:
                 st.download_button("⬇️ Download", data=st.session_state.gen_data, file_name="img.jpg", mime="image/jpeg", use_container_width=True)
